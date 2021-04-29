@@ -75,4 +75,24 @@ mod tests {
         assert!(max_node.is_some());
         assert_eq!(max_node.unwrap().value, 9);
     }
+
+    #[test]
+    fn art_iterator_works(){
+        let mut ds = ArtTree::new();
+        for i in 0..10{
+            let key = [i%16,i%8,i%4,i%2];
+            let result = ds.insert(&key, key.len(), i as u32);
+            assert!(result.is_none());
+        }
+
+        let mut counter = 0;
+
+        ds.iter(|val| {
+            println!("Visiting {:}", val);
+            counter+=1;
+            false
+        });
+
+        assert_eq!(counter, 10);
+    }
 }

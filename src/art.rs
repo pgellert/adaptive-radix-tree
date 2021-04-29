@@ -147,6 +147,20 @@ impl ArtTree{
             },
         }
     }
+
+    /// Iterates through the entries pairs in the map,
+    /// invoking a callback for each. The call back gets a
+    /// key, value for each and returns an integer stop value.
+    /// If the callback returns non-zero, then the iteration stops.
+    /// @arg t The tree to iterate over
+    /// @arg cb The callback function to invoke
+    /// @return true on success, or the return of the callback.
+    pub fn iter<CB>(&mut self, mut callback: CB) -> bool
+        where
+            CB: FnMut(u32) -> bool
+    {
+        self.root.as_mut().map_or(false, |root| root.recursive_iter(&mut callback))
+    }
 }
 
 
@@ -283,6 +297,18 @@ impl Node{
         }
 
         None
+    }
+
+
+    /// Recursively iterates over the tree
+    fn recursive_iter<CB>(&mut self, callback: &mut CB) -> bool
+    where
+        CB: FnMut(u32) -> bool
+    {
+        match self{
+            Node::Leaf { leaf, .. } => (callback)(leaf.value),
+            Node::Internal { internal } => internal.recursive_iter(callback),
+        }
     }
 }
 
@@ -449,6 +475,59 @@ impl ArtNodeInternal {
             },
         }.and_then(|next|next.maximum())
     }
+
+
+    fn recursive_iter<CB>(&mut self, callback: &mut CB) -> bool
+        where
+            CB: FnMut(u32) -> bool
+    {
+        let n = self.header;
+        match &mut self.inner{
+            ArtNodeInternalInner::Node4 { children, .. } => {
+                for child in children.iter_mut() {
+                    if child.is_some(){
+                        let result = child.as_mut().unwrap().recursive_iter(callback);
+                        if result {
+                            return result;
+                        }
+                    }
+                }
+            }
+            ArtNodeInternalInner::Node16 { children, .. } => {
+                for child in children.iter_mut() {
+                    if child.is_some(){
+                        let result = child.as_mut().unwrap().recursive_iter(callback);
+                        if result {
+                            return result;
+                        }
+                    }
+                }
+            }
+            ArtNodeInternalInner::Node48 { keys, children, .. } => {
+                for i in 0..256{
+                    let idx = keys[i] as usize;
+                    if idx != 0{
+                        let result = children[idx-1].as_mut().unwrap().recursive_iter(callback);
+                        if result{
+                            return result;
+                        }
+                    }
+                }
+            }
+            ArtNodeInternalInner::Node256 { children, .. } => {
+                for child in children.iter_mut(){
+                    if child.is_some() {
+                        let result = child.as_mut().unwrap().recursive_iter(callback);
+                        if result{
+                            return result;
+                        }
+                    }
+                }
+            }
+        }
+        false
+    }
+
 
 }
 
