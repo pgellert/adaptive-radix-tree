@@ -95,4 +95,23 @@ mod tests {
 
         assert_eq!(counter, 10);
     }
+
+    #[test]
+    fn art_delete_works(){
+        let mut ds = ArtTree::new();
+        for i in 0..10{
+            let key = [i%16,i%8,i%4,i%2];
+            let result = ds.insert(&key, key.len(), i as u32);
+            assert!(result.is_none());
+        }
+
+        for i in 0..10{
+            let key = [i%16,i%8,i%4,i%2];
+            let result = ds.delete(&key, key.len());
+            assert_eq!(result, Some(i as u32));
+        }
+
+        let min_node = ds.minimum();
+        assert!(min_node.is_none());
+    }
 }

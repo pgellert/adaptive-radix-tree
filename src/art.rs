@@ -1,13 +1,12 @@
-use std::ptr::null_mut;
+
 use std::cmp::min;
-use std::borrow::Borrow;
 
 const MAX_PREFIX_LEN: usize = 10;
 
 type ArtError = u32;
 type Result<T> = std::result::Result<T, ArtError>;
 
-#[derive(Clone)]
+#[derive(Debug,Clone)]
 enum Node{
     Leaf{
         leaf: ArtNodeLeaf,
@@ -17,7 +16,7 @@ enum Node{
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Debug,Copy, Clone)]
 struct InternalNodeHeader {
     partial_len: usize,
     num_children: u8,
@@ -31,13 +30,13 @@ pub struct ArtNodeLeaf{
     key: Box<[u8]>,
 }
 
-#[derive(Clone)]
+#[derive(Debug,Clone)]
 struct ArtNodeInternal{
     header: InternalNodeHeader,
     inner: ArtNodeInternalInner,
 }
 
-#[derive(Clone)]
+#[derive(Debug,Clone)]
 enum ArtNodeInternalInner {
     Node4 {
         keys: [u8;4],
@@ -78,8 +77,8 @@ impl ArtTree{
     /// @arg key_len The length of the key
     /// @return NULL if the item was not found, otherwise
     /// the value pointer is returned.
-    pub fn search(&mut self, key: &[u8], key_len: usize) -> Option<u32>{
-        let mut n_iter = self.root.as_mut();
+    pub fn search(&self, key: &[u8], key_len: usize) -> Option<u32>{
+        let mut n_iter = &self.root;
         let mut depth = 0;
         while let Some(node) = n_iter {
             match **node {
@@ -101,7 +100,7 @@ impl ArtTree{
                         depth = depth + header.partial_len;
                     }
 
-                    n_iter = internal.find_child(key[depth]);
+                    n_iter = internal.find_child(key[depth]); // TODO: double check
                     depth+=1;
                 }
             }
@@ -148,6 +147,29 @@ impl ArtTree{
         }
     }
 
+    /// Deletes a value from the ART tree
+    /// @arg t The tree
+    /// @arg key The key
+    /// @arg key_len The length of the key
+    /// @return NULL if the item was not found, otherwise
+    /// the value pointer is returned.
+    pub fn delete(&mut self, key: &[u8], key_len: usize) -> Option<u32> {
+        if self.root.is_none(){
+            return None;
+        } else {
+            let node = self.root.take().unwrap();
+            let result = node.recursive_delete(key, key_len, 0);
+            self.root = result.0;
+
+            if let Some(leaf) = result.1{
+                self.size -= 1;
+                return Some(leaf);
+            }
+            None
+        }
+    }
+
+
     /// Iterates through the entries pairs in the map,
     /// invoking a callback for each. The call back gets a
     /// key, value for each and returns an integer stop value.
@@ -181,7 +203,7 @@ impl Node{
     }
 
     fn recursive_insert(&mut self, key: &[u8], key_len: usize, value: u32, depth: usize, replace: bool) -> Option<u32> {
-        // TODO: handle NULL case
+        // TODO: handle NULL case?
         match self {
             Node::Leaf { leaf } => {
                 // Check if we are updating an existing value
@@ -284,9 +306,9 @@ impl Node{
                     return None;
                 }
 
-                let child = internal.find_child(key[depth]);
+                let child = internal.find_child(key[depth]); // TODO: double check
                 if let Some(node) = child{
-                    return node.recursive_insert(key, key_len, value, depth, replace);
+                    return node.as_mut().unwrap().recursive_insert(key, key_len, value, depth, replace);
                 }
 
                 let new_leaf = Node::Leaf {leaf: ArtNodeLeaf::new(key, key_len, value)};
@@ -295,8 +317,52 @@ impl Node{
                 return None;
             }
         }
+    }
 
-        None
+    fn recursive_delete(mut self: Box<Node>, key: &[u8], key_len: usize, mut depth: usize) -> (Option<Box<Node>>, Option<u32>) {
+        println!("self: {:?} -- {:?}", self.as_ref(),depth);
+        match *self {
+            Node::Leaf { ref mut leaf } => {
+                if leaf.matches(key, key_len, depth){
+                    return (None, Some(leaf.value));
+                }
+            }
+            Node::Internal { ref mut internal } => {
+                // Bail if the prefix does not match
+                if internal.header.partial_len == 0{
+                    let prefix_len = internal.header.check_prefix(key, key_len, depth);
+                    if prefix_len != min(MAX_PREFIX_LEN, internal.header.partial_len){
+                        return (Some(self), None);
+                    }
+                    depth += internal.header.partial_len; // TODO: consider if mut depth is needed
+                }
+
+                // Find child node
+                let mut child = internal.find_child(key[depth]);
+                if child.is_none(){
+                    return (Some(self), None);
+                }
+
+                let mut child = child.unwrap();
+
+
+                // If the child is leaf, delete from this node
+                match child.as_mut().unwrap().as_mut() {
+                    Node::Leaf { leaf } => {
+                        if leaf.matches(key, key_len, depth){
+                            internal.remove_child(&mut child, key[depth]);
+                            return (None, Some(leaf.value));
+                        } else {
+                            return (Some(self), None);
+                        }
+                    },
+                    Node::Internal { internal } => {
+                        return child.unwrap().recursive_delete(key, key_len, depth+1);
+                    },
+                }
+            }
+        };
+        (Some(self), None)
     }
 
 
@@ -313,7 +379,7 @@ impl Node{
 }
 
 impl ArtNodeInternal {
-    fn find_child(&mut self, c: u8) -> Option<&mut Box<Node>> {
+    fn find_child_mut(&mut self, c: u8) -> Option<&mut Box<Node>> {
         let n = self.header;
         match &mut self.inner {
             ArtNodeInternalInner::Node4 { keys, children, .. } => {
@@ -338,6 +404,36 @@ impl ArtNodeInternal {
             }
             ArtNodeInternalInner::Node256 { children } => {
                 return children[c as usize].as_mut();
+            }
+        }
+        return None;
+    }
+
+    fn find_child(&self, c: u8) -> Option<&Box<Node>> {
+        let n = self.header;
+        match &self.inner {
+            ArtNodeInternalInner::Node4 { keys, children, .. } => {
+                for i in 0..4 {
+                    if keys[i] == c {
+                        return children[i].as_ref();
+                    }
+                }
+            }
+            ArtNodeInternalInner::Node16 { keys, children } => {
+                for i in 0..min(16, n.num_children as usize) {
+                    if keys[i] == c {
+                        return children[i].as_ref();
+                    }
+                }
+            }
+            ArtNodeInternalInner::Node48 { keys, children } => {
+                let idx = (keys[c as usize] - 1)  as usize;
+                if idx != 0 {
+                    return children[idx].as_ref();
+                }
+            }
+            ArtNodeInternalInner::Node256 { children } => {
+                return children[c as usize].as_ref();
             }
         }
         return None;
@@ -477,6 +573,147 @@ impl ArtNodeInternal {
     }
 
 
+    fn remove_child(&mut self, mut link: &mut MyNode, c: u8) {
+        let n = &mut self.header;
+
+        match &mut self.inner {
+            ArtNodeInternalInner::Node4 { keys, children } => {
+                let pos = keys.iter().position(|&key| key == c);
+                if pos.is_none() {return;}
+                let pos = pos.unwrap();
+
+                for i in pos+1..n.num_children as usize{
+                    keys[i-1] = keys[i];
+                    children[i-1] = children[i].take();
+                }
+
+                if pos == 3 { // TODO: double check
+                    keys[pos] = 0;
+                    children[pos] = None;
+                }
+
+                n.num_children -= 1;
+
+                // Remove nodes with only a single child
+                if n.num_children == 1 {
+                    let mut child = children[0].take().unwrap();
+                    if let Node::Internal { internal } = child.as_mut() {
+                        // Concatenate the prefixes
+                        let mut prefix = n.partial_len;
+                        if prefix < MAX_PREFIX_LEN{
+                            n.partial[prefix] = keys[0];
+                            prefix += 1;
+                        }
+                        if prefix < MAX_PREFIX_LEN{
+                            let sub_prefix = min(internal.header.partial_len, MAX_PREFIX_LEN - prefix);
+                            for i in 0..sub_prefix{
+                                n.partial[prefix+i] = internal.header.partial[i];
+                            }
+                            prefix += sub_prefix;
+                        }
+
+                        // Store the prefix in the child
+                        for i in 0..min(prefix, MAX_PREFIX_LEN){
+                            internal.header.partial[i] = internal.header.partial[i];
+                        }
+                        internal.header.partial_len += n.partial_len + 1;
+                    }
+
+
+                    *link = Some(child);
+                }
+            }
+            ArtNodeInternalInner::Node16 { keys, children } => {
+                let pos = keys.iter().position(|&key| key == c);
+                if pos.is_none() {return;}
+                let pos = pos.unwrap();
+
+                for i in pos+1..n.num_children as usize{
+                    keys[i-1] = keys[i];
+                    children[i-1] = children[i].take();
+                }
+
+                if pos == 15 { // TODO: double check
+                    keys[pos] = 0;
+                    children[pos] = None;
+                }
+
+                n.num_children -= 1;
+
+                if n.num_children == 3 {
+                    const INIT: MyNode = None;
+                    let mut children_new: [MyNode; 4] = [INIT; 4];
+                    let mut keys_new: [u8; 4] = [0; 4];
+
+                    for i in 0..n.num_children as usize {
+                        keys_new[i] = keys[i];
+                        children_new[i] = children[i].take();
+                    }
+
+                    self.inner = ArtNodeInternalInner::Node4 {
+                        keys: keys_new,
+                        children: children_new,
+                    };
+                }
+            }
+            ArtNodeInternalInner::Node48 { keys, children } => {
+                let pos = keys[c as usize] as usize;
+                keys[c as usize] = 0;
+                children[pos - 1] = None;
+                n.num_children -= 1;
+
+                if n.num_children == 12{
+                    const INIT: MyNode = None;
+                    let mut children_new: [MyNode; 16] = [INIT; 16];
+                    let mut keys_new: [u8; 16] = [0; 16];
+                    let mut child = 0;
+                    for i in 0..256 {
+                        let pos = keys[i] as usize;
+                        if pos != 0{
+                            keys_new[child] = i as u8;
+                            children_new[child] = children[pos - 1].take();
+                            child += 1;
+                        }
+                        keys_new[i] = keys[i];
+                        children_new[i] = children[i].take();
+                    }
+
+                    self.inner = ArtNodeInternalInner::Node16 {
+                        keys: keys_new,
+                        children: children_new,
+                    };
+                }
+            }
+            ArtNodeInternalInner::Node256 { children } => {
+                children[c as usize] = None;
+                n.num_children -= 1;
+
+                // Resize to a node48 on underflow, not immediately to prevent
+                // trashing if we sit on the 48/49 boundary
+                if n.num_children == 37 {
+                    const INIT: MyNode = None;
+                    let mut children_new: [MyNode; 48] = [INIT; 48];
+                    let mut keys_new: [u8; 256] = [0; 256];
+
+                    let mut pos = 0;
+                    for i in 0..256 {
+                        if children[i].is_some() {
+                            children_new[pos] = children[i].take();
+                            keys_new[i] = (pos + 1) as u8;
+                            pos += 1;
+                        }
+                    }
+
+                    self.inner = ArtNodeInternalInner::Node48 {
+                        keys: keys_new,
+                        children: children_new,
+                    };
+                }
+            }
+        }
+    }
+
+
     fn recursive_iter<CB>(&mut self, callback: &mut CB) -> bool
         where
             CB: FnMut(u32) -> bool
@@ -541,7 +778,7 @@ impl ArtNodeInternal{
         if self.header.partial_len > MAX_PREFIX_LEN{
             // Prefix is longer than what we've checked, find a leaf
             let l = self.minimum().unwrap(); // TODO: check
-            let max_cmp = (min(l.key_len, key_len) - depth);
+            let max_cmp = min(l.key_len, key_len) - depth;
             for i in idx..max_cmp{
                 if l.key[(i+depth)] != key[(depth+i)]{
                     return i;
