@@ -1,5 +1,6 @@
 use crate::art::ArtTree;
 
+#[derive(Clone)]
 pub struct U64ArtMap<V>{
     tree: ArtTree<V>,
 }

@@ -53,7 +53,7 @@ enum ArtNodeInternalInner<V> {
     },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ArtTree<V>{
     root: Node<V>,
     size: u64,
