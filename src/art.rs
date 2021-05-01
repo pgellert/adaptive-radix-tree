@@ -110,8 +110,8 @@ impl<V> ArtTree<V>{
         self.root.minimum().map(|leaf| &leaf.value)
     }
 
-    pub fn maximum(&mut self) -> Option<&mut V>{
-        self.root.maximum().map(|leaf| &mut leaf.value)
+    pub fn maximum(&self) -> Option<&V>{
+        self.root.maximum().map(|leaf| &leaf.value)
     }
 
 
@@ -171,7 +171,7 @@ impl<V> Node<V>{
         }
     }
 
-    fn maximum(&mut self) -> Option<&mut ArtNodeLeaf<V>> {
+    fn maximum(&self) -> Option<&ArtNodeLeaf<V>> {
         match self{
             Node::Empty => None,
             Node::Leaf (leaf) => Some(leaf),
@@ -646,10 +646,10 @@ impl<V> ArtNodeInternal<V> {
         }
     }
 
-    fn maximum(&mut self) -> Option<&mut ArtNodeLeaf<V>>{
+    fn maximum(&self) -> Option<&ArtNodeLeaf<V>>{
         let n = &self.header;
-        match &mut self.inner{
-            ArtNodeInternalInner::Node4 {  children, .. } => children[(n.num_children-1) as usize].maximum(),
+        match &self.inner{
+            ArtNodeInternalInner::Node4 { children, .. } => children[(n.num_children-1) as usize].maximum(),
             ArtNodeInternalInner::Node16 {children,.. } => children[(n.num_children-1) as usize].maximum(),
             ArtNodeInternalInner::Node48 { keys, children,.. } => {
                 let idx = keys.iter().rev().position(|&key| key != 0).unwrap_or(0);

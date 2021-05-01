@@ -1,4 +1,5 @@
 mod art;
+mod u64_art_map;
 
 #[cfg(test)]
 mod tests {
