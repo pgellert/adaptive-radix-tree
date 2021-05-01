@@ -74,18 +74,18 @@ impl<V> ArtTree<V>{
     /// @arg key_len Vhe length of the key
     /// @return NULL if the item was not found, otherwise
     /// the value pointer is returned.
-    pub fn search(&self, key: &[u8], key_len: usize) -> Option<&V>{
-        let mut n_iter = &self.root;
+    pub fn get_mut(&mut self, key: &[u8], key_len: usize) -> Option<&mut V>{
+        let mut n_iter = &mut self.root;
         let mut depth = 0;
         loop {
             match *n_iter {
-                Node::Leaf (ref leaf) => {
+                Node::Leaf (ref mut leaf) => {
                     if leaf.matches(key, key_len, depth) {
-                        return Some(&leaf.value);
+                        return Some(&mut leaf.value);
                     }
                     return None;
                 }
-                Node::Internal (ref internal) => {
+                Node::Internal (ref mut internal) => {
                     let header = internal.header;
 
                     if header.partial_len != 0 {
@@ -98,7 +98,7 @@ impl<V> ArtTree<V>{
                     }
 
 
-                    n_iter = internal.find_child(key[depth]).unwrap(); // TODO: double check
+                    n_iter = internal.find_child_mut(key[depth]).unwrap(); // TODO: double check
                     depth+=1;
                 }
                 Node::Empty => return None,

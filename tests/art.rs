@@ -9,9 +9,9 @@ fn art_new_works(){
 
 #[test]
 fn art_search_works(){
-    let ds = ArtTree::<u32>::new();
+    let mut ds = ArtTree::<u32>::new();
 
-    let result = ds.search(&[1,2,3], 3);
+    let result = ds.get_mut(&[1,2,3], 3);
     assert!(result.is_none());
 }
 
