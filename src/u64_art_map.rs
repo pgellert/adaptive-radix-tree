@@ -12,7 +12,7 @@ impl<V> U64ArtMap<V>{
         }
     }
 
-    pub fn get_mut(&mut self, key: u64) -> Option<&mut V>{
+    pub fn get_mut(&mut self, key: &u64) -> Option<&mut V>{
         let key_bytes = key.to_be_bytes();
         self.tree.get_mut(&key_bytes, key_bytes.len())
     }

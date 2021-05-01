@@ -5,7 +5,7 @@ use adaptive_radix_tree::u64_art_map::*;
 #[test]
 fn test_search_works(){
     let mut artmap = U64ArtMap::<String>::new();
-    let result = artmap.get_mut(10);
+    let result = artmap.get_mut(&10);
     assert_eq!(None, result);
 }
 
