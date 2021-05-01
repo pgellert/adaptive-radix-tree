@@ -41,4 +41,26 @@ impl<V> U64ArtMap<V>{
     {
         self.tree.iter(&mut callback)
     }
+
+    pub fn pop_first(&mut self) -> Option<(u64, V)>{
+        self.tree.pop_first().map(|(k,v)| {
+            let mut key_slice = [0;8];
+            for i in 0..8{
+                key_slice[i] = k[i];
+            }
+            (u64::from_be_bytes(key_slice), v)
+        })
+    }
+
+    pub fn pop_last(&mut self) -> Option<(u64, V)>{
+        self.tree.pop_last().map(|(k,v)| {
+            let mut key_slice = [0;8];
+            for i in 0..8{
+                key_slice[i] = k[i];
+            }
+            (u64::from_be_bytes(key_slice), v)
+        })
+    }
+
+
 }

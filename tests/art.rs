@@ -133,3 +133,51 @@ fn art_insert_debug(){
 fn make_interesting_key(i: u32) -> Box<[u8;4]>{
     Box::new([(i % 10) as u8, (i % 20) as u8, (i % 50) as u8, (i % 256) as u8])
 }
+
+#[test]
+fn art_pop_first_works(){
+    let mut ds = ArtTree::<u32>::new();
+
+    let data = vec![
+        ([1,2,3], 17),
+        ([1,2,4], 18),
+    ];
+
+    for (key,value) in data.clone().into_iter(){
+        let result = ds.insert(&key, key.len(), value);
+        assert!(result.is_none());
+    }
+
+    let get_back = ds.pop_first();
+    assert!(get_back.is_some());
+
+    let kv = get_back.unwrap();
+    let expected_kv = (data[0].0.as_ref(), data[0].1);
+    assert!(kv_pair_eq(kv, expected_kv));
+}
+
+#[test]
+fn art_pop_last_works(){
+    let mut ds = ArtTree::<u32>::new();
+
+    let data = vec![
+        ([1,2,3], 17),
+        ([1,2,4], 18),
+    ];
+
+    for (key,value) in data.clone().into_iter(){
+        let result = ds.insert(&key, key.len(), value);
+        assert!(result.is_none());
+    }
+
+    let get_back = ds.pop_last();
+    assert!(get_back.is_some());
+
+    let kv = get_back.unwrap();
+    let expected_kv = (data[1].0.as_ref(), data[1].1);
+    assert!(kv_pair_eq(kv, expected_kv));
+}
+
+fn kv_pair_eq(left: (Box<[u8]>, u32), right: (&[u8], u32)) -> bool {
+    left.1 == right.1 && left.0.iter().zip(right.0).all(|(k1,k2)| *k1 == *k2)
+}

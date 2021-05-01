@@ -115,6 +115,14 @@ impl<V> ArtTree<V>{
     }
 
 
+    pub fn pop_first(&mut self) -> Option<(Box<[u8]>,V)>{
+        self.root.pop_first()
+    }
+
+    pub fn pop_last(&mut self) -> Option<(Box<[u8]>,V)>{
+        self.root.pop_last()
+    }
+
     /// inserts a new value into the art tree
     /// @arg t the tree
     /// @arg key the key
@@ -161,6 +169,11 @@ impl<V> ArtTree<V>{
 }
 
 
+impl<V> Default for Node<V> {
+    fn default() -> Self {
+        Self::Empty
+    }
+}
 
 impl<V> Node<V>{
     fn minimum(&self) -> Option<&ArtNodeLeaf<V>> {
@@ -176,6 +189,32 @@ impl<V> Node<V>{
             Node::Empty => None,
             Node::Leaf (leaf) => Some(leaf),
             Node::Internal (internal) => internal.maximum(),
+        }
+    }
+
+    fn pop_first(&mut self) -> Option<(Box<[u8]>, V)> {
+        match self{
+            Node::Empty => None,
+            Node::Leaf (_) => {
+                match mem::take(self) {
+                    Node::Leaf (leaf) => return Some((leaf.key, leaf.value)),
+                    _ => unreachable!(),
+                };
+            },
+            Node::Internal(internal) => internal.pop_first(),
+        }
+    }
+
+    fn pop_last(&mut self) -> Option<(Box<[u8]>, V)> {
+        match self{
+            Node::Empty => None,
+            Node::Leaf (_) => {
+                match mem::take(self) {
+                    Node::Leaf (leaf) => return Some((leaf.key, leaf.value)),
+                    _ => unreachable!(),
+                };
+            },
+            Node::Internal(internal) => internal.pop_last(),
         }
     }
 
@@ -627,7 +666,6 @@ impl<V> ArtNodeInternal<V> {
     }
 
     fn minimum(&self) -> Option<&ArtNodeLeaf<V>>{
-        let n = &self.header;
         match &self.inner{
             ArtNodeInternalInner::Node4 { children, .. } => children[0].minimum(),
             ArtNodeInternalInner::Node16 { children,.. } => children[0].minimum(),
@@ -641,6 +679,45 @@ impl<V> ArtNodeInternal<V> {
                 match idx{
                     None => None,
                     Some(i) => children[i].minimum(),
+                }
+            },
+        }
+    }
+
+    fn pop_first(&mut self) -> Option<(Box<[u8]>, V)>{
+        match self.inner{
+            ArtNodeInternalInner::Node4 { ref mut children, .. } => children[0].pop_first(),
+            ArtNodeInternalInner::Node16 { ref mut children,.. } => children[0].pop_first(),
+            ArtNodeInternalInner::Node48 { ref mut keys, ref mut children,.. } => {
+                let idx = keys.iter().position(|&key| key != 0).unwrap_or(48);
+                let idx = (keys[idx] - 1) as usize;
+                children[idx].pop_first()
+            },
+            ArtNodeInternalInner::Node256 { ref mut children,.. } => {
+                let idx = children.iter().position(|child| !child.is_empty());
+                match idx{
+                    None => None,
+                    Some(i) => children[i].pop_first(),
+                }
+            },
+        }
+    }
+
+    fn pop_last(&mut self) -> Option<(Box<[u8]>, V)>{
+        let n = &self.header;
+        match self.inner{
+            ArtNodeInternalInner::Node4 { ref mut children, .. } => children[(n.num_children-1) as usize].pop_last(),
+            ArtNodeInternalInner::Node16 { ref mut children,.. } => children[(n.num_children-1) as usize].pop_last(),
+            ArtNodeInternalInner::Node48 { ref mut keys, ref mut children,.. } => {
+                let idx = keys.iter().rev().position(|&key| key != 0).unwrap_or(0);
+                let idx = (keys[idx] - 1) as usize;
+                children[idx].pop_last()
+            },
+            ArtNodeInternalInner::Node256 { ref mut children,.. } => {
+                let idx = children.iter().rev().position(|child| !child.is_empty());
+                match idx{
+                    None => None,
+                    Some(i) => children[i].pop_last(),
                 }
             },
         }
