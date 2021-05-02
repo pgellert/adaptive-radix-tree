@@ -1236,12 +1236,10 @@ impl InternalNodeHeader {
 
 impl<V> ArtNodeLeaf<V> {
     fn new(key: &[u8], key_len: usize, value: V) -> Self{
-        let mut key_clone = vec![0;key.len()];
-        key_clone.copy_from_slice(key);
         Self{
             value,
             key_len,
-            key: key_clone.into_boxed_slice(),
+            key: key.into(),
         }
     }
 
