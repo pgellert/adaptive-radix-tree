@@ -115,6 +115,14 @@ impl<V> ArtTree<V>{
         self.root.maximum().map(|leaf| (&leaf.key, &leaf.value))
     }
 
+    pub fn minimum_mut(&mut self) -> Option<(&mut Box<[u8]>,&mut V)>{
+        self.root.minimum_mut().map(|leaf| (&mut leaf.key, &mut leaf.value))
+    }
+
+    pub fn maximum_mut(&mut self) -> Option<(&mut Box<[u8]>,&mut V)>{
+        self.root.maximum_mut().map(|leaf| (&mut leaf.key, &mut leaf.value))
+    }
+
 
     pub fn pop_first(&mut self) -> Option<(Box<[u8]>,V)>{
         let (min_key, _) = self.minimum()?;
@@ -196,11 +204,27 @@ impl<V> Node<V>{
         }
     }
 
+    fn minimum_mut(&mut self) -> Option<&mut ArtNodeLeaf<V>> {
+        match self{
+            Node::Empty => None,
+            Node::Leaf (leaf) => Some(leaf.as_mut()),
+            Node::Internal(internal) => internal.minimum_mut(),
+        }
+    }
+
     fn maximum(&self) -> Option<&ArtNodeLeaf<V>> {
         match self{
             Node::Empty => None,
-            Node::Leaf (leaf) => Some(leaf),
+            Node::Leaf (leaf) => Some(leaf.as_ref()),
             Node::Internal (internal) => internal.maximum(),
+        }
+    }
+
+    fn maximum_mut(&mut self) -> Option<&mut ArtNodeLeaf<V>> {
+        match self{
+            Node::Empty => None,
+            Node::Leaf (leaf) => Some(leaf.as_mut()),
+            Node::Internal (internal) => internal.maximum_mut(),
         }
     }
 
@@ -837,11 +861,30 @@ impl<V> ArtNodeInternal<V> {
                 let idx = (keys[idx] - 1) as usize;
                 children[idx].minimum()
             },
-            ArtNodeInternalInner::Node256 {  children,.. } => {
+            ArtNodeInternalInner::Node256 {children,.. } => {
                 let idx = children.iter().position(|child| !child.is_empty());
                 match idx{
                     None => None,
                     Some(i) => children[i].minimum(),
+                }
+            },
+        }
+    }
+
+    fn minimum_mut(&mut self) -> Option<&mut ArtNodeLeaf<V>>{
+        match &mut self.inner{
+            ArtNodeInternalInner::Node4 { children, .. } => children[0].minimum_mut(),
+            ArtNodeInternalInner::Node16 { children,.. } => children[0].minimum_mut(),
+            ArtNodeInternalInner::Node48 { keys, children,.. } => {
+                let idx = keys.iter().position(|&key| key != 0).unwrap_or(48);
+                let idx = (keys[idx] - 1) as usize;
+                children[idx].minimum_mut()
+            },
+            ArtNodeInternalInner::Node256 {children,.. } => {
+                let idx = children.iter().position(|child| !child.is_empty());
+                match idx{
+                    None => None,
+                    Some(i) => children[i].minimum_mut(),
                 }
             },
         }
@@ -890,17 +933,37 @@ impl<V> ArtNodeInternal<V> {
         let n = &self.header;
         match &self.inner{
             ArtNodeInternalInner::Node4 { children, .. } => children[(n.num_children-1) as usize].maximum(),
-            ArtNodeInternalInner::Node16 {children,.. } => children[(n.num_children-1) as usize].maximum(),
+            ArtNodeInternalInner::Node16 {  children,.. } => children[(n.num_children-1) as usize].maximum(),
             ArtNodeInternalInner::Node48 { keys, children,.. } => {
                 let idx = keys.iter().rev().position(|&key| key != 0).unwrap_or(0);
                 let idx = (keys[idx] - 1) as usize;
                 children[idx].maximum()
             },
-            ArtNodeInternalInner::Node256 {  children,.. } => {
+            ArtNodeInternalInner::Node256 { children,.. } => {
                 let idx = children.iter().rev().position(|child| !child.is_empty());
                 match idx{
                     None => None,
                     Some(i) => children[i].maximum(),
+                }
+            },
+        }
+    }
+
+    fn maximum_mut(&mut self) -> Option<&mut ArtNodeLeaf<V>>{
+        let n = &self.header;
+        match &mut self.inner{
+            ArtNodeInternalInner::Node4 { children, .. } => children[(n.num_children-1) as usize].maximum_mut(),
+            ArtNodeInternalInner::Node16 { children,.. } => children[(n.num_children-1) as usize].maximum_mut(),
+            ArtNodeInternalInner::Node48 { keys, children,.. } => {
+                let idx = keys.iter().rev().position(|&key| key != 0).unwrap_or(0);
+                let idx = (keys[idx] - 1) as usize;
+                children[idx].maximum_mut()
+            },
+            ArtNodeInternalInner::Node256 { children,.. } => {
+                let idx = children.iter().rev().position(|child| !child.is_empty());
+                match idx{
+                    None => None,
+                    Some(i) => children[i].maximum_mut(),
                 }
             },
         }
