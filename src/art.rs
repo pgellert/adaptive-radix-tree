@@ -468,26 +468,12 @@ impl<V> Node<V>{
                                 let (child_res, return_val) = mem::take(&mut children[child_pos]).recursive_delete(key, key_len, depth + 1);
                                 children[child_pos] = child_res;
                                 if children[child_pos].is_empty() {
-
-                                    for i in child_pos..header.num_children as usize {
-                                        keys[i] = keys[i+1];
-                                        children[i] = mem::take(&mut children[i+1]);
+                                    for i in (child_pos+1)..header.num_children as usize {
+                                        keys[i-1] = keys[i];
+                                        children[i-1] = mem::take(&mut children[i]);
                                     }
-                                    keys[header.num_children as usize] = 0;
+                                    keys[(header.num_children-1) as usize] = 0;
                                     header.num_children -= 1;
-
-                                    /*
-                                    if header.num_children == 1 {
-                                        return (mem::take(&mut children[child_pos]), return_val);
-                                    }
-                                    if child_pos == 3 { // TODO: double check
-                                        keys[child_pos] = 0;
-                                        children[child_pos] = Node::Empty;
-                                    }
-
-                                     */
-
-
 
                                     // Remove nodes with only a single child
                                     if header.num_children == 1 {
@@ -529,12 +515,11 @@ impl<V> Node<V>{
                                 let (child_res, return_val) = mem::take(&mut children[child_pos]).recursive_delete(key, key_len, depth + 1);
                                 children[child_pos] = child_res;
                                 if children[child_pos].is_empty() {
-                                    for i in child_pos..(header.num_children as usize) {
-                                        keys[i] = keys[i+1];
-                                        children[i] = mem::take(&mut children[i+1]);
+                                    for i in (child_pos+1)..header.num_children as usize {
+                                        keys[i-1] = keys[i];
+                                        children[i-1] = mem::take(&mut children[i]);
                                     }
-                                    keys[header.num_children as usize] = 0;
-
+                                    keys[(header.num_children-1) as usize] = 0;
                                     header.num_children -= 1;
 
                                     if header.num_children == 3 {

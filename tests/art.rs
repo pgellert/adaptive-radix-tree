@@ -92,30 +92,35 @@ fn art_iterator_works(){
 #[test]
 fn art_delete_works(){
     let mut ds = ArtTree::new();
-    for _ in 0..3{
-        let mut keys: Vec<_> = (0..3000u32).map(|i| [(i%10) as u8,(i%20) as u8,(i%50) as u8, (i%256) as u8]).collect();
-        //let mut keys: Vec<_> = (0..200u32).map(|i| [(i%256) as u8]).collect();
-        for (i,key) in keys.iter().enumerate(){
-            //println!("Inserting: {:?}", key);
-            let result = ds.insert(key, key.len(), i as u32);
-            assert_eq!(result, None, "Error inserting value {:?} with key {:?}", i, &key);
-        }
 
-        //println!("Data structure: {:?}", ds);
+    let edge_cases = vec![1,3,4,5,15,16,17,47,48,49,255,256,257,3000];
 
-        for (i,key) in keys.iter().enumerate(){
+    for case in edge_cases{
+        for _ in 0..3{
+            let mut keys: Vec<_> = (0..case).map(|i| [(i%10) as u8,(i%20) as u8,(i%50) as u8, (i%256) as u8]).collect();
+            //let mut keys: Vec<_> = (0..200u32).map(|i| [(i%256) as u8]).collect();
+            for (i,key) in keys.iter().enumerate(){
+                //println!("Inserting: {:?}", key);
+                let result = ds.insert(key, key.len(), i as u32);
+                assert_eq!(result, None, "Error inserting value {:?} with key {:?}", i, &key);
+            }
+
             //println!("Data structure: {:?}", ds);
-            //println!("Deleting: {:?}", key);
-            let result = ds.delete(key, key.len());
-            assert_eq!(result, Some(i as u32));
+
+            for (i,key) in keys.iter().enumerate(){
+                //println!("Data structure: {:?}", ds);
+                //println!("Deleting: {:?}", key);
+                let result = ds.delete(key, key.len());
+                assert_eq!(result, Some(i as u32));
+            }
+
+            //println!("Data structure: {:?}", ds);
+
+            let min_node = ds.minimum();
+            assert!(min_node.is_none());
         }
-
-        //println!("Data structure: {:?}", ds);
-
-        let min_node = ds.minimum();
-        assert!(min_node.is_none());
+        println!("Data structure: {:?}", ds);
     }
-    println!("Data structure: {:?}", ds);
 }
 
 #[test]
