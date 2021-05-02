@@ -99,7 +99,7 @@ impl<V> ArtTree<V>{
                     }
 
 
-                    n_iter = internal.find_child_mut(key[depth]).unwrap(); // TODO: double check
+                    n_iter = internal.find_child_mut(key[depth])?;
                     depth+=1;
                 }
                 Node::Empty => return None,
