@@ -1249,7 +1249,7 @@ impl<V> ArtNodeLeaf<V> {
         if self.key_len != key_len {
             return false;
         }
-        self.key == Box::from(key)
+        self.key.iter().zip(key).all(|(a,b)| *a == *b)
     }
 
     fn longest_common_prefix(&self, other: &mut Self, depth: usize) -> usize{
