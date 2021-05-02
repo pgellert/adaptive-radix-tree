@@ -1,6 +1,7 @@
 
 use std::cmp::min;
 use std::mem;
+use std::hint::unreachable_unchecked;
 
 const MAX_PREFIX_LEN: usize = 10;
 
@@ -145,7 +146,8 @@ impl<V> ArtTree<V>{
     /// @return NULL if the item was not found, otherwise
     /// the value pointer is returned.
     pub fn delete(&mut self, key: &[u8], key_len: usize) -> Option<V> {
-        let result = self.root.recursive_delete(key, key_len, 0);
+        let (root, result) = mem::take(&mut self.root).recursive_delete(key, key_len, 0);
+        self.root = root;
         if result.is_some(){
             self.size -= 1;
         }
@@ -306,7 +308,7 @@ impl<V> Node<V>{
 
             match mem::replace(self, internal){
                 Node::Leaf(old_leaf) => {
-                    match self{
+                    match self {
                         Node::Internal(internal) => {
                             internal.add_child(old_leaf.as_ref().key[depth+longest_prefix], Node::Leaf(old_leaf));
                             internal.add_child(new_leaf.key[depth+longest_prefix], Node::Leaf(Box::new(new_leaf)));
@@ -419,51 +421,212 @@ impl<V> Node<V>{
         unreachable!()
     }
 
-    fn recursive_delete(&mut self, key: &[u8], key_len: usize, mut depth: usize) -> Option<V> {
-        match *self {
-            Node::Leaf (ref mut leaf) => {
-                if leaf.matches(key, key_len, depth){
-                    match mem::replace(self, Node::Empty) {
-                        Node::Leaf(leaf) => return Some(leaf.value),
-                        _ => unreachable!(),
-                    }
+
+    fn recursive_delete(mut self, key: &[u8], key_len: usize, mut depth: usize) -> (Self, Option<V>) {
+        let mut delete_cleanup = false;
+
+        match self {
+            Node::Leaf (leaf) => {
+                if leaf.matches(key, key_len, depth) {
+                    return (Node::Empty, Some(leaf.value));
+                } else {
+                    return (Node::Leaf(leaf), None);
                 }
             }
-            Node::Internal (ref mut internal) => {
+            Node::Internal (mut internal) => {
                 // Bail if the prefix does not match
                 if internal.header.partial_len != 0 {
                     let prefix_len = internal.header.check_prefix(key, key_len, depth);
                     if prefix_len != min(MAX_PREFIX_LEN, internal.header.partial_len){
-                        return None;
+                        return (Node::Internal (internal), None);
                     }
                     depth += internal.header.partial_len; // TODO: consider if mut depth is needed
                 }
 
                 // Find child node
-                let mut child = internal.find_child_mut(key[depth]);
-                if child.is_none(){
-                    return None;
+                //let mut child = internal.find_child_mut(key[depth]);
+                let child_pos = internal.find_child_index(key[depth]);
+                if child_pos.is_none(){
+                    return (Node::Internal (internal), None);
                 }
-                let mut child = child.unwrap();
+                let mut child_pos = child_pos.unwrap();
 
-                let replace_child = match child{
-                    Node::Leaf(leaf) => leaf.matches(key, key_len, depth+1),
-                    _ => false,
-                };
+                match *internal {
+                    ArtNodeInternal { ref mut header, ref mut inner } => {
+                        match inner {
+                            ArtNodeInternalInner::Node4 { ref mut children, ref mut keys, .. } => {
+                                let (child_res, return_val) = mem::take(&mut children[child_pos]).recursive_delete(key, key_len, depth + 1);
+                                children[child_pos] = child_res;
+                                if children[child_pos].is_empty() {
 
-                if replace_child {
-                    // TODO: shrink node if necessary
-                    match mem::replace(child, Node::Empty) {
-                        Node::Leaf(leaf) => return Some(leaf.value),
-                        _ => unreachable!(),
+                                    for i in child_pos..header.num_children as usize {
+                                        keys[i] = keys[i+1];
+                                        children[i] = mem::take(&mut children[i+1]);
+                                    }
+                                    keys[header.num_children as usize] = 0;
+                                    header.num_children -= 1;
+
+                                    /*
+                                    if header.num_children == 1 {
+                                        return (mem::take(&mut children[child_pos]), return_val);
+                                    }
+                                    if child_pos == 3 { // TODO: double check
+                                        keys[child_pos] = 0;
+                                        children[child_pos] = Node::Empty;
+                                    }
+
+                                     */
+
+
+
+                                    // Remove nodes with only a single child
+                                    if header.num_children == 1 {
+                                        match mem::take(&mut children[0]) {
+                                            Node::Internal(mut internal) => {
+                                                // Concatenate the prefixes
+                                                let mut prefix = header.partial_len;
+                                                if prefix < MAX_PREFIX_LEN {
+                                                    header.partial[prefix] = keys[0];
+                                                    prefix += 1;
+                                                }
+                                                if prefix < MAX_PREFIX_LEN {
+                                                    let sub_prefix = min(internal.header.partial_len, MAX_PREFIX_LEN - prefix);
+                                                    for i in 0..sub_prefix {
+                                                        header.partial[prefix + i] = internal.header.partial[i];
+                                                    }
+                                                    prefix += sub_prefix;
+                                                }
+
+                                                // Store the prefix in the child
+                                                for i in 0..min(prefix, MAX_PREFIX_LEN) {
+                                                    internal.header.partial[i] = header.partial[i];
+                                                }
+                                                internal.header.partial_len += header.partial_len + 1;
+
+                                                return (Node::Internal(internal), return_val);
+                                            },
+                                            Node::Leaf(leaf) => {
+                                                //mem::replace(self, leaf);
+                                                return (Node::Leaf(leaf), return_val);
+                                            },
+                                            _ => unreachable!(),
+                                        }
+                                    }
+                                }
+                                return (Node::Internal(internal), return_val);
+                            },
+                            ArtNodeInternalInner::Node16 { ref mut children, ref mut keys, .. } => {
+                                let (child_res, return_val) = mem::take(&mut children[child_pos]).recursive_delete(key, key_len, depth + 1);
+                                children[child_pos] = child_res;
+                                if children[child_pos].is_empty() {
+                                    for i in child_pos..(header.num_children as usize) {
+                                        keys[i] = keys[i+1];
+                                        children[i] = mem::take(&mut children[i+1]);
+                                    }
+                                    keys[header.num_children as usize] = 0;
+
+                                    header.num_children -= 1;
+
+                                    if header.num_children == 3 {
+                                        let mut children_new: [Node<V>; 4] = [Node::INIT; 4];
+                                        let mut keys_new: [u8; 4] = [0; 4];
+
+                                        for i in 0..header.num_children as usize {
+                                            keys_new[i] = keys[i];
+                                            children_new[i] = mem::take(&mut children[i]);
+                                        }
+
+                                        let new_node = Node::Internal(Box::new(ArtNodeInternal{
+                                            header: *header,
+                                            inner: ArtNodeInternalInner::Node4 {
+                                                keys: keys_new,
+                                                children: children_new,
+                                            }}));
+                                        return (new_node, return_val);
+                                    }
+                                }
+                                return (Node::Internal(internal), return_val);
+                            },
+                            ArtNodeInternalInner::Node48 { keys, children } => {
+                                let (child_res, return_val) = mem::take(&mut children[child_pos]).recursive_delete(key, key_len, depth + 1);
+                                children[child_pos] = child_res;
+                                if children[child_pos].is_empty() {
+                                    let c = key[depth];
+                                    let pos = keys[c as usize] as usize;
+                                    //let pos = child_pos + 1;
+                                    keys[c as usize] = 0;
+                                    children[pos - 1] = Node::Empty;
+
+                                    header.num_children -= 1;
+
+                                    if header.num_children == 12{
+
+                                        let mut children_new: [Node<V>; 16] = [Node::INIT; 16];
+                                        let mut keys_new: [u8; 16] = [0; 16];
+                                        let mut child = 0;
+                                        for i in 0..256 {
+                                            let pos = keys[i] as usize;
+                                            if pos != 0 {
+                                                keys_new[child] = i as u8;
+                                                children_new[child] = mem::take(&mut children[pos - 1]);
+                                                child += 1;
+                                            }
+                                            //keys_new[i] = keys[i];
+                                            //children_new[i] = mem::take(&mut children[i]);
+                                        }
+
+                                        let new_node  = Node::Internal(Box::new(ArtNodeInternal{ header: *header, inner: ArtNodeInternalInner::Node16 {
+                                            keys: keys_new,
+                                            children: children_new,
+                                        } }));
+                                        return (new_node, return_val);
+                                    }
+                                }
+                                return (Node::Internal(internal), return_val);
+                            },
+                            ArtNodeInternalInner::Node256 { children } => {
+                                let (child_res, return_val) = mem::take(&mut children[child_pos]).recursive_delete(key, key_len, depth + 1);
+                                children[child_pos] = child_res;
+                                if children[child_pos].is_empty() {
+                                    header.num_children -= 1;
+
+                                    // Resize to a node48 on underflow, not immediately to prevent
+                                    // thrashing if we sit on the 48/49 boundary
+                                    if header.num_children == 37 {
+                                        let mut children_new = [Node::INIT; 48];
+                                        let mut keys_new: [u8; 256] = [0; 256];
+
+                                        let mut pos = 0;
+                                        for i in 0..256 {
+                                            if !children[i].is_empty() {
+                                                children_new[pos] = mem::take(&mut children[i]);
+                                                keys_new[i] = (pos + 1) as u8;
+                                                pos += 1;
+                                            }
+                                        }
+
+                                        let new_node = Node::Internal(Box::new(ArtNodeInternal{
+                                            header: *header,
+                                            inner: ArtNodeInternalInner::Node48 {
+                                                keys: keys_new,
+                                                children: children_new,
+                                            },
+                                        }));
+
+                                        return (new_node, return_val);
+                                    }
+                                }
+
+                                return (Node::Internal(internal), return_val);
+
+                            }
+                        }
                     }
-                } else {
-                    return child.recursive_delete(key, key_len, depth+1);
                 }
             }
-            Node::Empty => return None,
+            Node::Empty => return (self, None),
         };
-        None
+        unreachable!()
     }
 
 
@@ -507,7 +670,12 @@ impl<V> ArtNodeInternal<V> {
                 }
             }
             ArtNodeInternalInner::Node256 { children } => {
-                return children.get_mut(c as usize);
+                let node = &mut children[c as usize];
+                if node.is_empty() {
+                    return None;
+                } else {
+                    return Some(node);
+                }
             }
         }
         return None;
@@ -563,9 +731,9 @@ impl<V> ArtNodeInternal<V> {
                 }
             }
             ArtNodeInternalInner::Node48 { keys, .. } => {
-                let idx = (keys[c as usize] - 1)  as usize;
+                let idx = keys[c as usize]  as usize;
                 if idx != 0 {
-                    return Some(idx);
+                    return Some(idx - 1);
                 }
             }
             ArtNodeInternalInner::Node256 { .. } => {
@@ -743,19 +911,29 @@ impl<V> ArtNodeInternal<V> {
         }
     }
 
-/*
-    fn remove_child(&mut self, mut link: &mut Node<V>, c: u8) {
+
+
+    fn remove_child(mut self: Box<Self>, c: u8) -> (Node<V>, Option<V>) {
+        // ASSERT: node to be removed is a leaf
         let n = &mut self.header;
 
         match self.inner {
             ArtNodeInternalInner::Node4 { ref mut keys, ref mut children } => {
                 let pos = keys.iter().position(|&key| key == c);
-                if pos.is_none() {return;}
+                if pos.is_none() {
+                    return (Node::Internal(self), None);
+                }
                 let pos = pos.unwrap();
+
+                let return_val = mem::take(&mut children[pos]);
+                let return_val = match return_val {
+                    Node::Leaf(leaf) => Some(leaf.value),
+                    _ => unreachable!(),
+                };
 
                 for i in pos+1..n.num_children as usize{
                     keys[i-1] = keys[i];
-                    children[i-1] = children[i];
+                    children[i-1] = mem::take(&mut children[i]);
                 }
 
                 if pos == 3 { // TODO: double check
@@ -767,33 +945,48 @@ impl<V> ArtNodeInternal<V> {
 
                 // Remove nodes with only a single child
                 if n.num_children == 1 {
-                    let mut child = &mut children[0];
-                    if let Node::Internal(internal) = child {
-                        // Concatenate the prefixes
-                        let mut prefix = n.partial_len;
-                        if prefix < MAX_PREFIX_LEN{
-                            n.partial[prefix] = keys[0];
-                            prefix += 1;
-                        }
-                        if prefix < MAX_PREFIX_LEN{
-                            let sub_prefix = min(internal.header.partial_len, MAX_PREFIX_LEN - prefix);
-                            for i in 0..sub_prefix{
-                                n.partial[prefix+i] = internal.header.partial[i];
+                    match mem::take(&mut children[0]){
+                        Node::Internal(ref mut internal) => {
+                            // Concatenate the prefixes
+                            let mut prefix = n.partial_len;
+                            if prefix < MAX_PREFIX_LEN{
+                                n.partial[prefix] = keys[0];
+                                prefix += 1;
                             }
-                            prefix += sub_prefix;
-                        }
+                            if prefix < MAX_PREFIX_LEN{
+                                let sub_prefix = min(internal.header.partial_len, MAX_PREFIX_LEN - prefix);
+                                for i in 0..sub_prefix{
+                                    n.partial[prefix+i] = internal.header.partial[i];
+                                }
+                                prefix += sub_prefix;
+                            }
 
-                        // Store the prefix in the child
-                        for i in 0..min(prefix, MAX_PREFIX_LEN){
-                            internal.header.partial[i] = internal.header.partial[i];
-                        }
-                        internal.header.partial_len += n.partial_len + 1;
+                            // Store the prefix in the child
+                            for i in 0..min(prefix, MAX_PREFIX_LEN){
+                                internal.header.partial[i] = internal.header.partial[i];
+                            }
+                            internal.header.partial_len += n.partial_len + 1;
+
+
+
+                            //mem::replace(Node::Internal(self), internal);
+                            // TODO: double check
+                        },
+                        Node::Leaf(leaf) => {
+                            //mem::replace(self, leaf);
+                        },
+                        _ => unreachable!(),
                     }
 
 
-                    *link = Some(child);
+                    //mem::replace(self, child);
+                    return (Node::Internal(self), return_val);
                 }
-            }
+
+                return (Node::Internal(self), return_val);
+            },
+            _ => return (Node::Internal(self), None),
+            /*
             ArtNodeInternalInner::Node16 { keys, children } => {
                 let pos = keys.iter().position(|&key| key == c);
                 if pos.is_none() {return;}
@@ -880,10 +1073,9 @@ impl<V> ArtNodeInternal<V> {
                     };
                 }
             }
+             */
         }
     }
-
- */
 
 
     fn recursive_iter<CB>(&mut self, callback: &mut CB) -> bool
