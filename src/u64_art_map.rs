@@ -18,12 +18,24 @@ impl<V> U64ArtMap<V>{
         self.tree.get_mut(&key_bytes, key_bytes.len())
     }
 
-    pub fn minimum(&self) -> Option<&V> {
-        self.tree.minimum()
+    pub fn minimum(&self) -> Option<(u64, &V)> {
+        self.tree.minimum().map(|(k,v)| {
+            let mut key_slice = [0;8];
+            for i in 0..8{
+                key_slice[i] = k[i];
+            }
+            (u64::from_be_bytes(key_slice), v)
+        })
     }
 
-    pub fn maximum(&self) -> Option<&V> {
-        self.tree.maximum()
+    pub fn maximum(&self) -> Option<(u64, &V)> {
+        self.tree.maximum().map(|(k,v)| {
+            let mut key_slice = [0;8];
+            for i in 0..8{
+                key_slice[i] = k[i];
+            }
+            (u64::from_be_bytes(key_slice), v)
+        })
     }
 
     pub fn insert(&mut self, key: u64, value: V) -> Option<V>{
@@ -62,6 +74,8 @@ impl<V> U64ArtMap<V>{
             (u64::from_be_bytes(key_slice), v)
         })
     }
+
+
 
 
 }

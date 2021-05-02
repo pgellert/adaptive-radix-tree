@@ -46,10 +46,10 @@ fn art_minmax_with_two_works(){
 
     let min_node = ds.minimum();
     assert!(min_node.is_some());
-    assert_eq!(*min_node.unwrap(), 17);
+    assert_eq!(min_node.unwrap().1, &17);
     let max_node = ds.maximum();
     assert!(max_node.is_some());
-    assert_eq!(*max_node.unwrap(), 122);
+    assert_eq!(max_node.unwrap().1, &122);
 }
 
 #[test]
@@ -63,10 +63,10 @@ fn art_successive_insert_works(){
 
     let min_node = ds.minimum();
     assert!(min_node.is_some());
-    assert_eq!(*min_node.unwrap(), 0);
+    assert_eq!(min_node.unwrap().1, &0);
     let max_node = ds.maximum();
     assert!(max_node.is_some());
-    assert_eq!(*max_node.unwrap(), 9);
+    assert_eq!(max_node.unwrap().1, &9);
 }
 
 #[test]
@@ -183,6 +183,29 @@ fn art_pop_last_works(){
     let kv = get_back.unwrap();
     let expected_kv = (data[1].0.as_ref(), data[1].1);
     assert!(kv_pair_eq(kv, expected_kv));
+}
+
+#[test]
+fn art_pop_last_twice_works(){
+    let mut ds = ArtTree::<u32>::new();
+
+
+    let data = vec![
+        ([1,2,3], 17),
+        ([1,2,4], 18),
+    ];
+
+
+    for (key,value) in data.clone().into_iter(){
+        let result = ds.insert(&key, key.len(), value);
+        assert!(result.is_none());
+    }
+
+    let get_back = ds.pop_last();
+    assert!(get_back.is_some());
+
+    let get_back = ds.pop_last();
+    assert!(get_back.is_some());
 }
 
 fn kv_pair_eq(left: (Box<[u8]>, u32), right: (&[u8], u32)) -> bool {

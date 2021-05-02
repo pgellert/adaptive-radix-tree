@@ -107,21 +107,31 @@ impl<V> ArtTree<V>{
         }
     }
 
-    pub fn minimum(&self) -> Option<&V>{
-        self.root.minimum().map(|leaf| &leaf.value)
+    pub fn minimum(&self) -> Option<(&Box<[u8]>,&V)>{
+        self.root.minimum().map(|leaf| (&leaf.key, &leaf.value))
     }
 
-    pub fn maximum(&self) -> Option<&V>{
-        self.root.maximum().map(|leaf| &leaf.value)
+    pub fn maximum(&self) -> Option<(&Box<[u8]>,&V)>{
+        self.root.maximum().map(|leaf| (&leaf.key, &leaf.value))
     }
 
 
     pub fn pop_first(&mut self) -> Option<(Box<[u8]>,V)>{
-        self.root.pop_first()
+        let (min_key, _) = self.minimum()?;
+        let min_key = min_key.clone();
+        let key_tmp = min_key.clone();
+        let key = key_tmp.as_ref();
+        let min_val = self.delete(key, key.len()).unwrap();
+        return Some((min_key, min_val));
     }
 
     pub fn pop_last(&mut self) -> Option<(Box<[u8]>,V)>{
-        self.root.pop_last()
+        let (min_key, _) = self.maximum()?;
+        let min_key = min_key.clone();
+        let key_tmp = min_key.clone();
+        let key = key_tmp.as_ref();
+        let min_val = self.delete(key, key.len()).unwrap();
+        return Some((min_key, min_val));
     }
 
     /// inserts a new value into the art tree
