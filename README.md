@@ -1,4 +1,7 @@
-TODO:
-* Consider changing u32 types to i32
-* Make &mut self -> &self where possible
-* Remove the _len variables, and use &\[...\].len() instead 
+# Adaptive Radix Tree
+
+This is an Adaptive Radix Tree implementation ported from the C implementation [libart](https://github.com/armon/libart)
+
+## Links:
+
+ - Adaptive Radix Tree paper: [link](https://db.in.tum.de/~leis/papers/ART.pdf)
