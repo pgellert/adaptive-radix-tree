@@ -6,7 +6,6 @@ pub struct U64ArtMap<V> {
     tree: ArtTree<V>,
 }
 
-
 impl<V> U64ArtMap<V> {
     pub fn new() -> Self {
         Self {
@@ -83,8 +82,8 @@ impl<V> U64ArtMap<V> {
     /// If the callback returns true, the iteration stops (before continuing to any successive
     /// element).
     pub fn iter<CB>(&mut self, mut callback: CB) -> bool
-        where
-            CB: FnMut(&V) -> bool
+    where
+        CB: FnMut(&V) -> bool,
     {
         self.tree.iter(&mut callback)
     }
