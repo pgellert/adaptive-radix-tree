@@ -444,28 +444,28 @@ impl<V> Node<V>{
 
 
     fn recursive_delete(mut self, key: &[u8], key_len: usize, mut depth: usize) -> (Self, Option<V>) {
-        match self {
-            Node::Leaf (leaf) => {
+        return match self {
+            Node::Leaf(leaf) => {
                 if leaf.matches(key, key_len, depth) {
-                    return (Node::Empty, Some(leaf.value));
+                    (Node::Empty, Some(leaf.value))
                 } else {
-                    return (Node::Leaf(leaf), None);
+                    (Node::Leaf(leaf), None)
                 }
             }
-            Node::Internal (mut internal) => {
+            Node::Internal(mut internal) => {
                 // Bail if the prefix does not match
                 if internal.header.partial_len != 0 {
                     let prefix_len = internal.header.check_prefix(key, key_len, depth);
-                    if prefix_len != min(MAX_PREFIX_LEN, internal.header.partial_len){
-                        return (Node::Internal (internal), None);
+                    if prefix_len != min(MAX_PREFIX_LEN, internal.header.partial_len) {
+                        return (Node::Internal(internal), None);
                     }
                     depth += internal.header.partial_len;
                 }
 
                 // Find child node
                 let child_pos = internal.find_child_index(key[depth]);
-                if child_pos.is_none(){
-                    return (Node::Internal (internal), None);
+                if child_pos.is_none() {
+                    return (Node::Internal(internal), None);
                 }
                 let mut child_pos = child_pos.unwrap();
 
@@ -476,11 +476,11 @@ impl<V> Node<V>{
                                 let (child_res, return_val) = mem::take(&mut children[child_pos]).recursive_delete(key, key_len, depth + 1);
                                 children[child_pos] = child_res;
                                 if children[child_pos].is_empty() {
-                                    for i in (child_pos+1)..header.num_children as usize {
-                                        keys[i-1] = keys[i];
-                                        children[i-1] = mem::take(&mut children[i]);
+                                    for i in (child_pos + 1)..header.num_children as usize {
+                                        keys[i - 1] = keys[i];
+                                        children[i - 1] = mem::take(&mut children[i]);
                                     }
-                                    keys[(header.num_children-1) as usize] = 0;
+                                    keys[(header.num_children - 1) as usize] = 0;
                                     header.num_children -= 1;
 
                                     // Remove nodes with only a single child
@@ -516,17 +516,17 @@ impl<V> Node<V>{
                                         }
                                     }
                                 }
-                                return (Node::Internal(internal), return_val);
+                                (Node::Internal(internal), return_val)
                             },
                             ArtNodeInternalInner::Node16 { ref mut children, ref mut keys, .. } => {
                                 let (child_res, return_val) = mem::take(&mut children[child_pos]).recursive_delete(key, key_len, depth + 1);
                                 children[child_pos] = child_res;
                                 if children[child_pos].is_empty() {
-                                    for i in (child_pos+1)..header.num_children as usize {
-                                        keys[i-1] = keys[i];
-                                        children[i-1] = mem::take(&mut children[i]);
+                                    for i in (child_pos + 1)..header.num_children as usize {
+                                        keys[i - 1] = keys[i];
+                                        children[i - 1] = mem::take(&mut children[i]);
                                     }
-                                    keys[(header.num_children-1) as usize] = 0;
+                                    keys[(header.num_children - 1) as usize] = 0;
                                     header.num_children -= 1;
 
                                     if header.num_children == 3 {
@@ -538,16 +538,17 @@ impl<V> Node<V>{
                                             children_new[i] = mem::take(&mut children[i]);
                                         }
 
-                                        let new_node = Node::Internal(Box::new(ArtNodeInternal{
+                                        let new_node = Node::Internal(Box::new(ArtNodeInternal {
                                             header: *header,
                                             inner: ArtNodeInternalInner::Node4 {
                                                 keys: keys_new,
                                                 children: children_new,
-                                            }}));
+                                            }
+                                        }));
                                         return (new_node, return_val);
                                     }
                                 }
-                                return (Node::Internal(internal), return_val);
+                                (Node::Internal(internal), return_val)
                             },
                             ArtNodeInternalInner::Node48 { keys, children } => {
                                 let (child_res, return_val) = mem::take(&mut children[child_pos]).recursive_delete(key, key_len, depth + 1);
@@ -561,8 +562,7 @@ impl<V> Node<V>{
 
                                     header.num_children -= 1;
 
-                                    if header.num_children == 12{
-
+                                    if header.num_children == 12 {
                                         let mut children_new: [Node<V>; 16] = [Node::INIT; 16];
                                         let mut keys_new: [u8; 16] = [0; 16];
                                         let mut child = 0;
@@ -575,14 +575,17 @@ impl<V> Node<V>{
                                             }
                                         }
 
-                                        let new_node  = Node::Internal(Box::new(ArtNodeInternal{ header: *header, inner: ArtNodeInternalInner::Node16 {
-                                            keys: keys_new,
-                                            children: children_new,
-                                        } }));
+                                        let new_node = Node::Internal(Box::new(ArtNodeInternal {
+                                            header: *header,
+                                            inner: ArtNodeInternalInner::Node16 {
+                                                keys: keys_new,
+                                                children: children_new,
+                                            }
+                                        }));
                                         return (new_node, return_val);
                                     }
                                 }
-                                return (Node::Internal(internal), return_val);
+                                (Node::Internal(internal), return_val)
                             },
                             ArtNodeInternalInner::Node256 { children } => {
                                 let (child_res, return_val) = mem::take(&mut children[child_pos]).recursive_delete(key, key_len, depth + 1);
@@ -605,7 +608,7 @@ impl<V> Node<V>{
                                             }
                                         }
 
-                                        let new_node = Node::Internal(Box::new(ArtNodeInternal{
+                                        let new_node = Node::Internal(Box::new(ArtNodeInternal {
                                             header: *header,
                                             inner: ArtNodeInternalInner::Node48 {
                                                 keys: keys_new,
@@ -617,16 +620,14 @@ impl<V> Node<V>{
                                     }
                                 }
 
-                                return (Node::Internal(internal), return_val);
-
+                                (Node::Internal(internal), return_val)
                             }
                         }
                     }
                 }
             }
-            Node::Empty => return (self, None),
+            Node::Empty => (self, None),
         };
-        unreachable!()
     }
 
 
@@ -663,18 +664,18 @@ impl<V> ArtNodeInternal<V> {
             }
             ArtNodeInternalInner::Node48 { keys, children } => {
                 let idx = keys[c as usize]  as usize;
-                if idx != 0 {
-                    return Some(&mut children[idx - 1]);
+                return if idx != 0 {
+                    Some(&mut children[idx - 1])
                 } else {
-                    return None;
+                    None
                 }
             }
             ArtNodeInternalInner::Node256 { children } => {
                 let node = &mut children[c as usize];
-                if node.is_empty() {
-                    return None;
+                return if node.is_empty() {
+                    None
                 } else {
-                    return Some(node);
+                    Some(node)
                 }
             }
         }
@@ -700,10 +701,10 @@ impl<V> ArtNodeInternal<V> {
             }
             ArtNodeInternalInner::Node48 { keys, children } => {
                 let idx = keys[c as usize]  as usize;
-                if idx != 0 {
-                    return Some(&children[idx - 1]);
+                return if idx != 0 {
+                    Some(&children[idx - 1])
                 } else {
-                    return None;
+                    None
                 }
             }
             ArtNodeInternalInner::Node256 { children } => {
@@ -954,7 +955,6 @@ impl<V> ArtNodeInternal<V> {
         where
             CB: FnMut(&V) -> bool
     {
-        let n = self.header;
         match &mut self.inner{
             ArtNodeInternalInner::Node4 { children, .. } => {
                 for child in children.iter_mut() {

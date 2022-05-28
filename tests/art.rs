@@ -4,7 +4,7 @@ use adaptive_radix_tree::art::*;
 
 #[test]
 fn art_new_works(){
-    let mut ds = ArtTree::<u32>::new();
+    let _ds = ArtTree::<u32>::new();
 }
 
 #[test]
@@ -137,7 +137,7 @@ fn art_insert_debug(){
 
     let breaking_key = make_interesting_key(1600);
     println!("Inserting: {:?}", breaking_key);
-    let result = ds.insert(breaking_key.as_ref(), breaking_key.len(), 10u32);
+    let _result = ds.insert(breaking_key.as_ref(), breaking_key.len(), 10u32);
 
     println!("(End) Data structure: {:?}", ds);
 }
