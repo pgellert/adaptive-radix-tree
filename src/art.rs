@@ -979,14 +979,8 @@ impl<V> ArtNodeInternal<V> {
                 children[(n.num_children - 1) as usize].maximum()
             }
             ArtNodeInternalInner::Node48 { keys, children, .. } => {
-                let mut i = 255;
-                while i >= 0 {
-                    if keys[i] != 0 {
-                        return children[(keys[i] - 1) as usize].maximum();
-                    }
-                    i -= 1;
-                }
-                unreachable!("A Node48 node must have at least 17 elements")
+                let idx = keys.iter().rposition(|&i| i != 0).unwrap();
+                children[(keys[idx] - 1) as usize].maximum()
             }
             ArtNodeInternalInner::Node256 { children, .. } => {
                 let idx = children
