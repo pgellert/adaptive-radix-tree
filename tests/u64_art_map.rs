@@ -38,7 +38,6 @@ fn test_delete_works() {
     assert!(min_val.is_none());
 }
 
-
 #[test]
 fn test_minmax_works() {
     let mut artmap = U64ArtMap::<String>::new();

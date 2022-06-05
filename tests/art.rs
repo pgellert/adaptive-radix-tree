@@ -47,16 +47,16 @@ fn art_minmax_with_two_works() {
 #[test]
 fn art_minmax_with_four_unique_elements_works() {
     let mut ds = ArtTree::<String>::new();
-    assert!(insert_kv(&mut ds, [0,0,0,100], "min".to_string()).is_none());
-    assert!(insert_kv(&mut ds, [0,0,0,200], "middle".to_string()).is_none());
-    assert!(insert_kv(&mut ds, [0,0,1, 44], "middle".to_string()).is_none());
-    assert!(insert_kv(&mut ds, [0,0,1,144], "max".to_string()).is_none());
+    assert!(insert_kv(&mut ds, [0, 0, 0, 100], "min".to_string()).is_none());
+    assert!(insert_kv(&mut ds, [0, 0, 0, 200], "middle".to_string()).is_none());
+    assert!(insert_kv(&mut ds, [0, 0, 1, 44], "middle".to_string()).is_none());
+    assert!(insert_kv(&mut ds, [0, 0, 1, 144], "max".to_string()).is_none());
 
-    assert_eq!(**ds.minimum().unwrap().0, [0,0,0,100]);
-    assert_eq!(**ds.maximum().unwrap().0, [0,0,1,144]);
+    assert_eq!(**ds.minimum().unwrap().0, [0, 0, 0, 100]);
+    assert_eq!(**ds.maximum().unwrap().0, [0, 0, 1, 144]);
 }
 
-fn insert_kv<V>(data: &mut ArtTree<V>, key_list: [u8;4], value: V) -> Option<V> {
+fn insert_kv<V>(data: &mut ArtTree<V>, key_list: [u8; 4], value: V) -> Option<V> {
     let key_len = key_list.len();
     return data.insert(&key_list, key_len, value);
 }
@@ -89,7 +89,7 @@ fn art_iterator_works() {
 
     let mut counter = 0;
 
-    ds.iter(|val| {
+    ds.iter(|_val| {
         counter += 1;
         false
     });
@@ -105,7 +105,7 @@ fn art_delete_works() {
 
     for case in edge_cases {
         for _ in 0..3 {
-            let mut keys: Vec<_> = (0..case)
+            let keys: Vec<_> = (0..case)
                 .map(|i| {
                     [
                         (i % 10) as u8,
