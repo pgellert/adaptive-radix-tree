@@ -190,6 +190,15 @@ impl<V> Default for Node<V> {
 }
 
 impl<V> Node<V> {
+    const INIT: Self = Node::Empty;
+
+    fn is_empty(&self) -> bool {
+        match self {
+            Node::Empty => true,
+            _ => false,
+        }
+    }
+
     fn minimum(&self) -> Option<&ArtNodeLeaf<V>> {
         match self {
             Node::Empty => None,
@@ -1135,16 +1144,5 @@ impl<V> ArtNodeLeaf<V> {
             }
         }
         return max_cmp;
-    }
-}
-
-impl<V> Node<V> {
-    const INIT: Self = Node::Empty;
-
-    fn is_empty(&self) -> bool {
-        match self {
-            Node::Empty => true,
-            _ => false,
-        }
     }
 }
