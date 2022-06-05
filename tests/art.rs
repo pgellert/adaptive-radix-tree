@@ -6,35 +6,23 @@ use adaptive_radix_tree::art::*;
 fn test_get_mut_returns_none_when_art_is_empty() {
     let mut ds = ArtTree::<u32>::new();
 
-    let result = ds.get_mut(&[1, 2, 3], 3);
+    let result = ds.get_mut(&[1, 2, 3]);
     assert!(result.is_none());
 }
 
 #[test]
 fn test_art_insert_inserts_single_element() {
     let mut ds = ArtTree::<u32>::new();
-    let key = [1, 2, 3];
-    let value = 17;
-    let result = ds.insert(&key, key.len(), value);
-    assert!(result.is_none());
+    ds.insert(&[1, 2, 3], 17);
 
-    let minimum = ds.minimum();
-    assert_eq!(value, *minimum.unwrap().1);
+    assert_eq!(17, *ds.minimum().unwrap().1);
 }
 
 #[test]
 fn art_minmax_with_two_works() {
     let mut ds = ArtTree::<u32>::new();
-    let key = [1, 2, 3];
-    let key_len = key.len();
-    let value = 17;
-    let result = ds.insert(&key, key_len, value);
-    assert!(result.is_none());
-    let key = [1, 3, 4];
-    let key_len = key.len();
-    let value = 122;
-    let result = ds.insert(&key, key_len, value);
-    assert!(result.is_none());
+    ds.insert(&[1, 2, 3], 17);
+    ds.insert(&[1, 3, 4], 122);
 
     let min_node = ds.minimum();
     assert!(min_node.is_some());
@@ -57,8 +45,7 @@ fn art_minmax_with_four_unique_elements_works() {
 }
 
 fn insert_kv<V>(data: &mut ArtTree<V>, key_list: [u8; 4], value: V) -> Option<V> {
-    let key_len = key_list.len();
-    return data.insert(&key_list, key_len, value);
+    return data.insert(&key_list, value);
 }
 
 #[test]
@@ -66,7 +53,7 @@ fn art_successive_insert_works() {
     let mut ds = ArtTree::<u32>::new();
     for i in 0..10 {
         let key = [i % 16, i % 8, i % 4, i % 2];
-        let result = ds.insert(&key, key.len(), i as u32);
+        let result = ds.insert(&key, i as u32);
         assert!(result.is_none());
     }
 
@@ -83,7 +70,7 @@ fn art_iterator_works() {
     let mut ds = ArtTree::<u32>::new();
     for i in 0..10 {
         let key = [i % 16, i % 8, i % 4, i % 2];
-        let result = ds.insert(&key, key.len(), i as u32);
+        let result = ds.insert(&key, i as u32);
         assert!(result.is_none());
     }
 
@@ -116,7 +103,7 @@ fn art_delete_works() {
                 })
                 .collect();
             for (i, key) in keys.iter().enumerate() {
-                let result = ds.insert(key, key.len(), i as u32);
+                let result = ds.insert(key, i as u32);
                 assert_eq!(
                     result, None,
                     "Error inserting value {:?} with key {:?}",
@@ -125,7 +112,7 @@ fn art_delete_works() {
             }
 
             for (i, key) in keys.iter().enumerate() {
-                let result = ds.delete(key, key.len());
+                let result = ds.delete(key);
                 assert_eq!(result, Some(i as u32));
             }
 
@@ -152,12 +139,12 @@ fn art_insert_debug() {
         })
         .collect();
     for (i, key) in keys.iter().enumerate() {
-        let result = ds.insert(key, key.len(), i as u32);
+        let result = ds.insert(key, i as u32);
         assert!(result.is_none());
     }
 
     let breaking_key = make_interesting_key(1600);
-    let _result = ds.insert(breaking_key.as_ref(), breaking_key.len(), 10u32);
+    let _result = ds.insert(breaking_key.as_ref(), 10u32);
 }
 
 fn make_interesting_key(i: u32) -> Box<[u8; 4]> {
@@ -176,7 +163,7 @@ fn art_pop_first_works() {
     let data = vec![([1, 2, 3], 17), ([1, 2, 4], 18)];
 
     for (key, value) in data.clone().into_iter() {
-        let result = ds.insert(&key, key.len(), value);
+        let result = ds.insert(&key, value);
         assert!(result.is_none());
     }
 
@@ -195,7 +182,7 @@ fn art_pop_last_works() {
     let data = vec![([1, 2, 3], 17), ([1, 2, 4], 18)];
 
     for (key, value) in data.clone().into_iter() {
-        let result = ds.insert(&key, key.len(), value);
+        let result = ds.insert(&key, value);
         assert!(result.is_none());
     }
 
@@ -214,7 +201,7 @@ fn art_pop_last_twice_works() {
     let data = vec![([1, 2, 3], 17), ([1, 2, 4], 18)];
 
     for (key, value) in data.clone().into_iter() {
-        let result = ds.insert(&key, key.len(), value);
+        let result = ds.insert(&key, value);
         assert!(result.is_none());
     }
 
