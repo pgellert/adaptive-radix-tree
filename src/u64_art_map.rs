@@ -16,7 +16,7 @@ impl<V> U64ArtMap<V> {
     /// Returns a mutable reference to the value stored at the given key if it exists
     pub fn get_mut(&mut self, key: &u64) -> Option<&mut V> {
         let key_bytes = key.to_be_bytes();
-        self.tree.get_mut(&key_bytes, key_bytes.len())
+        self.tree.get_mut(&key_bytes)
     }
 
     /// Returns the key and a reference to the value of the minimum element in the map
@@ -47,13 +47,13 @@ impl<V> U64ArtMap<V> {
     /// such exists.
     pub fn insert(&mut self, key: u64, value: V) -> Option<V> {
         let key_bytes = key.to_be_bytes();
-        self.tree.insert(&key_bytes, key_bytes.len(), value)
+        self.tree.insert(&key_bytes, value)
     }
 
     /// Deletes and returns the value stored at the given key.
     pub fn delete(&mut self, key: u64) -> Option<V> {
         let key_bytes = key.to_be_bytes();
-        self.tree.delete(&key_bytes, key_bytes.len())
+        self.tree.delete(&key_bytes)
     }
 
     /// Iterates over the values stored in the map in sorted order and calls the callback on the
