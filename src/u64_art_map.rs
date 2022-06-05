@@ -21,46 +21,26 @@ impl<V> U64ArtMap<V> {
 
     /// Returns the key and a reference to the value of the minimum element in the map
     pub fn minimum(&self) -> Option<(u64, &V)> {
-        self.tree.minimum().map(|(k, v)| {
-            let mut key_slice = [0; 8];
-            for i in 0..8 {
-                key_slice[i] = k[i];
-            }
-            (u64::from_be_bytes(key_slice), v)
-        })
+        self.tree.minimum().map(|(k, v)| (u8_list_to_u64_key(k), v))
     }
 
     /// Returns the key and a reference to the value of the maximum element in the map
     pub fn maximum(&self) -> Option<(u64, &V)> {
-        self.tree.maximum().map(|(k, v)| {
-            let mut key_slice = [0; 8];
-            for i in 0..8 {
-                key_slice[i] = k[i];
-            }
-            (u64::from_be_bytes(key_slice), v)
-        })
+        self.tree.maximum().map(|(k, v)| (u8_list_to_u64_key(k), v))
     }
 
     /// Returns the key and a reference to the value of the minimum element in the map
     pub fn minimum_mut(&mut self) -> Option<(u64, &mut V)> {
-        self.tree.minimum_mut().map(|(k, v)| {
-            let mut key_slice = [0; 8];
-            for i in 0..8 {
-                key_slice[i] = k[i];
-            }
-            (u64::from_be_bytes(key_slice), v)
-        })
+        self.tree
+            .minimum_mut()
+            .map(|(k, v)| (u8_list_to_u64_key(k), v))
     }
 
     /// Returns the key and a reference to the value of the maximum element in the map
     pub fn maximum_mut(&mut self) -> Option<(u64, &mut V)> {
-        self.tree.maximum_mut().map(|(k, v)| {
-            let mut key_slice = [0; 8];
-            for i in 0..8 {
-                key_slice[i] = k[i];
-            }
-            (u64::from_be_bytes(key_slice), v)
-        })
+        self.tree
+            .maximum_mut()
+            .map(|(k, v)| (u8_list_to_u64_key(k), v))
     }
 
     /// Inserts the given value at the given key and returns the previous value stored at the key if
@@ -90,23 +70,35 @@ impl<V> U64ArtMap<V> {
 
     /// Removes and returns the minimal key-value pair from the map
     pub fn pop_first(&mut self) -> Option<(u64, V)> {
-        self.tree.pop_first().map(|(k, v)| {
-            let mut key_slice = [0; 8];
-            for i in 0..8 {
-                key_slice[i] = k[i];
-            }
-            (u64::from_be_bytes(key_slice), v)
-        })
+        self.tree
+            .pop_first()
+            .map(|(k, v)| (u8_list_to_u64_key(&k), v))
     }
 
     /// Removes and returns the maximal key-value pair from the map
     pub fn pop_last(&mut self) -> Option<(u64, V)> {
-        self.tree.pop_last().map(|(k, v)| {
-            let mut key_slice = [0; 8];
-            for i in 0..8 {
-                key_slice[i] = k[i];
-            }
-            (u64::from_be_bytes(key_slice), v)
-        })
+        self.tree
+            .pop_last()
+            .map(|(k, v)| (u8_list_to_u64_key(&k), v))
+    }
+}
+
+fn u8_list_to_u64_key(stored_key: &Box<[u8]>) -> u64 {
+    let mut key_slice = [0; 8];
+    for i in 0..8 {
+        key_slice[i] = stored_key[i];
+    }
+    u64::from_be_bytes(key_slice)
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn u64_mapping_and_reverse_mapping_test() {
+        let u64key = 123456u64;
+        assert_eq!(
+            u64key,
+            crate::u64_art_map::u8_list_to_u64_key(&u64key.to_be_bytes().into())
+        );
     }
 }
