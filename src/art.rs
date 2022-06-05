@@ -372,9 +372,7 @@ impl<V> Node<V> {
 
             // Create a new node
             let mut partial = [0u8; MAX_PREFIX_LEN];
-            let mut partial_len = 0;
-
-            {
+            let partial_len = {
                 let n = match self {
                     Node::Internal(ref internal) => internal.header,
                     _ => unreachable!(),
@@ -382,8 +380,8 @@ impl<V> Node<V> {
                 for i in 0..min(MAX_PREFIX_LEN, prefix_diff) {
                     partial[i] = n.partial[i];
                 }
-                partial_len = n.partial_len;
-            }
+                n.partial_len
+            };
 
             let new_node = Node::Internal(Box::new(ArtNodeInternal {
                 header: InternalNodeHeader {
@@ -463,12 +461,7 @@ impl<V> Node<V> {
         unreachable!()
     }
 
-    fn recursive_delete(
-        self,
-        key: &[u8],
-        key_len: usize,
-        mut depth: usize,
-    ) -> (Self, Option<V>) {
+    fn recursive_delete(self, key: &[u8], key_len: usize, mut depth: usize) -> (Self, Option<V>) {
         return match self {
             Node::Leaf(leaf) => {
                 if leaf.matches(key, key_len, depth) {
