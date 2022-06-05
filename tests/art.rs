@@ -29,13 +29,11 @@ fn art_minmax_with_two_works() {
     let key_len = key.len();
     let value = 17;
     let result = ds.insert(&key, key_len, value);
-    println!("Result: {:?}", result);
     assert!(result.is_none());
     let key = [1, 3, 4];
     let key_len = key.len();
     let value = 122;
     let result = ds.insert(&key, key_len, value);
-    println!("Result: {:?}", result);
     assert!(result.is_none());
 
     let min_node = ds.minimum();
@@ -75,7 +73,6 @@ fn art_iterator_works() {
     let mut counter = 0;
 
     ds.iter(|val| {
-        println!("Visiting {:}", val);
         counter += 1;
         false
     });
@@ -101,9 +98,7 @@ fn art_delete_works() {
                     ]
                 })
                 .collect();
-            //let mut keys: Vec<_> = (0..200u32).map(|i| [(i%256) as u8]).collect();
             for (i, key) in keys.iter().enumerate() {
-                //println!("Inserting: {:?}", key);
                 let result = ds.insert(key, key.len(), i as u32);
                 assert_eq!(
                     result, None,
@@ -112,21 +107,16 @@ fn art_delete_works() {
                 );
             }
 
-            //println!("Data structure: {:?}", ds);
-
             for (i, key) in keys.iter().enumerate() {
-                //println!("Data structure: {:?}", ds);
-                //println!("Deleting: {:?}", key);
                 let result = ds.delete(key, key.len());
                 assert_eq!(result, Some(i as u32));
             }
 
-            //println!("Data structure: {:?}", ds);
-
             let min_node = ds.minimum();
             assert!(min_node.is_none());
         }
-        println!("Data structure: {:?}", ds);
+
+        // TODO: assert on data structure
     }
 }
 
@@ -145,18 +135,12 @@ fn art_insert_debug() {
         })
         .collect();
     for (i, key) in keys.iter().enumerate() {
-        println!("Inserting: {:?}", key);
         let result = ds.insert(key, key.len(), i as u32);
         assert!(result.is_none());
     }
 
-    println!("(Partial) Data structure: {:?}", ds);
-
     let breaking_key = make_interesting_key(1600);
-    println!("Inserting: {:?}", breaking_key);
     let _result = ds.insert(breaking_key.as_ref(), breaking_key.len(), 10u32);
-
-    println!("(End) Data structure: {:?}", ds);
 }
 
 fn make_interesting_key(i: u32) -> Box<[u8; 4]> {
