@@ -45,6 +45,23 @@ fn art_minmax_with_two_works() {
 }
 
 #[test]
+fn art_minmax_with_four_unique_elements_works() {
+    let mut ds = ArtTree::<String>::new();
+    assert!(insert_kv(&mut ds, [0,0,0,100], "min".to_string()).is_none());
+    assert!(insert_kv(&mut ds, [0,0,0,200], "middle".to_string()).is_none());
+    assert!(insert_kv(&mut ds, [0,0,1, 44], "middle".to_string()).is_none());
+    assert!(insert_kv(&mut ds, [0,0,1,144], "max".to_string()).is_none());
+
+    assert_eq!(**ds.minimum().unwrap().0, [0,0,0,100]);
+    assert_eq!(**ds.maximum().unwrap().0, [0,0,1,144]);
+}
+
+fn insert_kv<V>(data: &mut ArtTree<V>, key_list: [u8;4], value: V) -> Option<V> {
+    let key_len = key_list.len();
+    return data.insert(&key_list, key_len, value);
+}
+
+#[test]
 fn art_successive_insert_works() {
     let mut ds = ArtTree::<u32>::new();
     for i in 0..10 {
