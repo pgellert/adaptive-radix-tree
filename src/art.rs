@@ -288,28 +288,28 @@ impl<V> Node<V> {
                         let child = internal.find_child_mut(key[depth]);
                         if let Some(node) = child {
                             return node.recursive_insert(key, key_len, value, depth + 1, replace);
+                        } else {
+                            // No child, node goes within us
+                            let new_leaf = Node::Leaf(Box::new(ArtNodeLeaf::new(key, key_len, value)));
+                            internal.add_child(key[depth], new_leaf);
+
+                            return None;
                         }
-
-                        // No child, node goes within us
-                        let new_leaf = Node::Leaf(Box::new(ArtNodeLeaf::new(key, key_len, value)));
-                        internal.add_child(key[depth], new_leaf);
-
-                        return None;
                     }
 
                     split_internal = true;
                     prefix_save = prefix_diff;
+                } else {
+                    let child = internal.find_child_mut(key[depth]);
+                    if let Some(node) = child {
+                        return node.recursive_insert(key, key_len, value, depth + 1, replace);
+                    }
+
+                    let new_leaf = Node::Leaf(Box::new(ArtNodeLeaf::new(key, key_len, value)));
+                    internal.add_child(key[depth], new_leaf);
+
+                    return None;
                 }
-
-                let child = internal.find_child_mut(key[depth]);
-                if let Some(node) = child {
-                    return node.recursive_insert(key, key_len, value, depth + 1, replace);
-                }
-
-                let new_leaf = Node::Leaf(Box::new(ArtNodeLeaf::new(key, key_len, value)));
-                internal.add_child(key[depth], new_leaf);
-
-                return None;
             }
             Node::Empty => {
                 let new_leaf = Box::new(ArtNodeLeaf::new(key, key_len, value));

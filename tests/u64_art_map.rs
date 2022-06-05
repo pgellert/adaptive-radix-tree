@@ -37,3 +37,16 @@ fn test_delete_works() {
     let min_val = artmap.minimum();
     assert!(min_val.is_none());
 }
+
+
+#[test]
+fn test_minmax_works() {
+    let mut artmap = U64ArtMap::<String>::new();
+    artmap.insert(100, "min".to_string());
+    artmap.insert(200, "middle".to_string());
+    artmap.insert(300, "middle".to_string());
+    artmap.insert(400, "max".to_string());
+
+    assert_eq!(artmap.minimum().unwrap().0, 100);
+    assert_eq!(artmap.maximum().unwrap().0, 400);
+}
