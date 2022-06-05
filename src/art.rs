@@ -290,7 +290,8 @@ impl<V> Node<V> {
                             return node.recursive_insert(key, key_len, value, depth + 1, replace);
                         } else {
                             // No child, node goes within us
-                            let new_leaf = Node::Leaf(Box::new(ArtNodeLeaf::new(key, key_len, value)));
+                            let new_leaf =
+                                Node::Leaf(Box::new(ArtNodeLeaf::new(key, key_len, value)));
                             internal.add_child(key[depth], new_leaf);
 
                             return None;
