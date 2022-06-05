@@ -1,6 +1,8 @@
 extern crate adaptive_radix_tree;
 
 use adaptive_radix_tree::u64_art_map::*;
+use rand::Rng;
+use std::collections::BTreeMap;
 
 #[test]
 fn test_search_works() {
@@ -60,4 +62,20 @@ fn test_pop_first_and_pop_last_work() {
 
     assert_eq!(artmap.pop_first().unwrap().0, 100);
     assert_eq!(artmap.pop_last().unwrap().0, 400);
+}
+
+#[test]
+fn test_when_inserting_random_numbers_min_max_returns_same_as_btree() {
+    let mut artmap = U64ArtMap::<String>::new();
+    let mut btree = BTreeMap::<u64, String>::new();
+
+    let mut rng = rand::thread_rng();
+    for _ in 0..10000 {
+        let random_key = rng.gen::<u64>();
+        artmap.insert(random_key, random_key.to_string());
+        btree.insert(random_key, random_key.to_string());
+
+        assert_eq!(artmap.minimum().unwrap().0, *btree.iter().next().unwrap().0);
+        assert_eq!(artmap.maximum().unwrap().0, *btree.iter().last().unwrap().0);
+    }
 }

@@ -9,17 +9,17 @@ static DUMMY_VALUE_2: u32 = 18;
 fn test_insert_into_empty_tree() {
     let mut ds = ArtTree::<u32>::new();
 
-    assert!(ds.get_mut(&[1,2,3]).is_none());
-    assert!(ds.insert(&[1,2,3], DUMMY_VALUE).is_none());
-    assert!(ds.get_mut(&[1,2,3]).is_some());
+    assert!(ds.get_mut(&[1, 2, 3]).is_none());
+    assert!(ds.insert(&[1, 2, 3], DUMMY_VALUE).is_none());
+    assert!(ds.get_mut(&[1, 2, 3]).is_some());
 }
 
 #[test]
 fn test_insert_and_replace_into_empty_tree() {
     let mut ds = ArtTree::<u32>::new();
 
-    assert!(ds.insert(&[1,2,3], DUMMY_VALUE).is_none());
-    assert!(ds.insert(&[1,2,3], DUMMY_VALUE_2).is_some());
+    assert!(ds.insert(&[1, 2, 3], DUMMY_VALUE).is_none());
+    assert!(ds.insert(&[1, 2, 3], DUMMY_VALUE_2).is_some());
     assert_eq!(*ds.get_mut(&[1, 2, 3]).unwrap(), DUMMY_VALUE_2);
 }
 
@@ -27,11 +27,11 @@ fn test_insert_and_replace_into_empty_tree() {
 fn test_insert_single_mismatch() {
     let mut ds = ArtTree::<u32>::new();
 
-    assert!(ds.insert(&[1,1,1,1,1], DUMMY_VALUE).is_none());
-    assert!(ds.insert(&[1,1,2,1,1], DUMMY_VALUE_2).is_none());
+    assert!(ds.insert(&[1, 1, 1, 1, 1], DUMMY_VALUE).is_none());
+    assert!(ds.insert(&[1, 1, 2, 1, 1], DUMMY_VALUE_2).is_none());
 
-    assert_eq!(*ds.get_mut(&[1,1,1,1,1]).unwrap(), DUMMY_VALUE);
-    assert_eq!(*ds.get_mut(&[1,1,2,1,1]).unwrap(), DUMMY_VALUE_2);
+    assert_eq!(*ds.get_mut(&[1, 1, 1, 1, 1]).unwrap(), DUMMY_VALUE);
+    assert_eq!(*ds.get_mut(&[1, 1, 2, 1, 1]).unwrap(), DUMMY_VALUE_2);
 }
 
 #[test]
