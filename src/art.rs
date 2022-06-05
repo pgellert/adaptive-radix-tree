@@ -4,9 +4,6 @@ use std::mem;
 
 const MAX_PREFIX_LEN: usize = 10;
 
-type ArtError = u32;
-type Result<V> = std::result::Result<V, ArtError>;
-
 #[derive(Debug, Clone)]
 enum Node<V> {
     Empty,
