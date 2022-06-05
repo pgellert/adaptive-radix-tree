@@ -2,20 +2,36 @@ extern crate adaptive_radix_tree;
 
 use adaptive_radix_tree::art::*;
 
+static DUMMY_VALUE: u32 = 17;
+static DUMMY_VALUE_2: u32 = 18;
+
 #[test]
-fn test_get_mut_returns_none_when_art_is_empty() {
+fn test_insert_into_empty_tree() {
     let mut ds = ArtTree::<u32>::new();
 
-    let result = ds.get_mut(&[1, 2, 3]);
-    assert!(result.is_none());
+    assert!(ds.get_mut(&[1, 2, 3]).is_none());
+    assert!(ds.insert(&[1, 2, 3], DUMMY_VALUE).is_none());
+    assert!(ds.get_mut(&[1, 2, 3]).is_some());
 }
 
 #[test]
-fn test_art_insert_inserts_single_element() {
+fn test_insert_and_replace_into_empty_tree() {
     let mut ds = ArtTree::<u32>::new();
-    ds.insert(&[1, 2, 3], 17);
 
-    assert_eq!(17, *ds.minimum().unwrap().1);
+    assert!(ds.insert(&[1, 2, 3], DUMMY_VALUE).is_none());
+    assert!(ds.insert(&[1, 2, 3], DUMMY_VALUE_2).is_some());
+    assert_eq!(*ds.get_mut(&[1, 2, 3]).unwrap(), DUMMY_VALUE_2);
+}
+
+#[test]
+fn test_insert_single_mismatch() {
+    let mut ds = ArtTree::<u32>::new();
+
+    assert!(ds.insert(&[1, 1, 1, 1, 1], DUMMY_VALUE).is_none());
+    assert!(ds.insert(&[1, 1, 2, 1, 1], DUMMY_VALUE_2).is_none());
+
+    assert_eq!(*ds.get_mut(&[1, 1, 1, 1, 1]).unwrap(), DUMMY_VALUE);
+    assert_eq!(*ds.get_mut(&[1, 1, 2, 1, 1]).unwrap(), DUMMY_VALUE_2);
 }
 
 #[test]
