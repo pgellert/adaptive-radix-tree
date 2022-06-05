@@ -1,5 +1,5 @@
 use std::cmp::min;
-use std::hint::unreachable_unchecked;
+
 use std::mem;
 
 const MAX_PREFIX_LEN: usize = 10;
@@ -275,7 +275,7 @@ impl<V> Node<V> {
                 split = true;
             }
             Node::Internal(ref mut internal) => {
-                let mut n = internal.header;
+                let n = internal.header;
 
                 // Check if given node has a prefix
                 if n.partial_len != 0 {
@@ -335,7 +335,7 @@ impl<V> Node<V> {
 
             let arr = [Node::<V>::INIT; 4];
 
-            let mut internal = Node::Internal(Box::new(ArtNodeInternal {
+            let internal = Node::Internal(Box::new(ArtNodeInternal {
                 header: InternalNodeHeader {
                     partial_len: longest_prefix,
                     num_children: 0,
@@ -385,7 +385,7 @@ impl<V> Node<V> {
                 partial_len = n.partial_len;
             }
 
-            let mut new_node = Node::Internal(Box::new(ArtNodeInternal {
+            let new_node = Node::Internal(Box::new(ArtNodeInternal {
                 header: InternalNodeHeader {
                     partial_len: prefix_diff,
                     num_children: 0,
@@ -464,7 +464,7 @@ impl<V> Node<V> {
     }
 
     fn recursive_delete(
-        mut self,
+        self,
         key: &[u8],
         key_len: usize,
         mut depth: usize,
@@ -492,7 +492,7 @@ impl<V> Node<V> {
                 if child_pos.is_none() {
                     return (Node::Internal(internal), None);
                 }
-                let mut child_pos = child_pos.unwrap();
+                let child_pos = child_pos.unwrap();
 
                 match *internal {
                     ArtNodeInternal {

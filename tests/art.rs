@@ -89,7 +89,7 @@ fn art_iterator_works() {
 
     let mut counter = 0;
 
-    ds.iter(|val| {
+    ds.iter(|_val| {
         counter += 1;
         false
     });
@@ -105,7 +105,7 @@ fn art_delete_works() {
 
     for case in edge_cases {
         for _ in 0..3 {
-            let mut keys: Vec<_> = (0..case)
+            let keys: Vec<_> = (0..case)
                 .map(|i| {
                     [
                         (i % 10) as u8,
